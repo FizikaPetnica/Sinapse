@@ -3,12 +3,12 @@
 #include <math.h>
 #include <time.h>
 
-#define D 0.41 //: [mikrometar na kvadrat / milisekund]
+#define D 400 //: [mikrometar na kvadrat / milisekund]
 #define time_step 0.01 // milisekunde
-#define boundaries 1.0000000 //: mikrometri
+#define boundaries 0.000002//: mikrometri
 #define pi 3.14
 #define broj_iteracija 1000
-#define rate_constant 0.0047
+#define rate_constant 4.7
 
 struct receptor_st
 {
@@ -17,16 +17,53 @@ struct receptor_st
     double av;
     double pb;
     int zauzeto;
-
 } receptor;
+
+typedef struct xy_st
+{
+    double x;
+    double y;
+}xy;
+
+xy reflektovanje (double x, double y)
+{
+    xy xy;
+    double l = 0;
+     if (y >= (boundaries / 2))
+        {
+            l = abs(y - boundaries/2);
+            xy.y = boundaries/2 - l;
+        }
+
+        if (y <= (-boundaries/2))
+        {
+            l = abs(- y - boundaries /2);
+            xy.y = -boundaries/2 + l;
+        }
+
+        if (x >= (boundaries / 2))
+        {
+            l = abs(x - boundaries/2);
+            xy.x = boundaries/2 - l;
+        }
+
+        if (x <= (-boundaries/2))
+        {
+            l = abs(- x - boundaries /2);
+            xy.x = - boundaries/2 + l;
+        }
+
+        return xy;
+}
 
 void vezivanje(double x, double y)
 {
     double r = (double) rand()/RAND_MAX;
-    if (y == -boundaries/2)
+    if ((y <= -boundaries/2 + 0.01) && (x<=-0.1))
     {
-    if (r < receptor.pb)
-    {       if (receptor.zauzeto == 0)
+    if (r <= 1 - receptor.pb)
+    {
+     if (receptor.zauzeto == 0)
                     {
                         receptor.zauzeto = 1;
                     }
@@ -43,37 +80,11 @@ void vezivanje(double x, double y)
     {
         reflektovanje (receptor.xcor, receptor.ycor);
     }
-}
-}
-
-void reflektovanje (double x, double y)
-{
-    double l = 0;
-     if (y > (boundaries / 2))
-        {
-            l = abs(y - boundaries/2);
-            y = boundaries/2 - l;
-        }
-
-        if (y < (-boundaries/2))
-        {
-            l = abs(- y - boundaries /2);
-            y = -boundaries/2 + l;
-        }
-
-        if (x > (boundaries / 2))
-        {
-            l = abs(x - boundaries/2);
-            x = boundaries/2 - l;
-        }
-
-        if (x < (-boundaries/2))
-        {
-            l = abs(- x - boundaries /2);
-            x = - boundaries/2 + l;
-        }
 
 }
+
+}
+
 
 
 double randn (double mu, double sigma)
@@ -129,15 +140,14 @@ int main()
     y[0] = 0;
     int i;
     double a, b;
-    //receptor.zauzeto = 0;
-    //receptor.av = 6.23 * pow(10, 2);
-    //receptor.pb = (rate_constant * (1/ 2 * receptor.av * receptor.xcor*receptor.ycor)*(sqrt(pi*time_step/D))) ;
+    receptor.av = 6.23;
+    receptor.pb = (rate_constant * (1/ 2 * receptor.av * receptor.xcor*receptor.ycor)*(sqrt(pi*time_step/D))) ;
     for (i = 1; i <= broj_iteracija-1; i++)
     {
         x[i] = randn(x[i-1], 2 * D * time_step);
         y[i] = randn(y[i-1], 2 * D * time_step);
-        reflektovanje(x[i], y[i]);
-        printf("%f %f \n", x[i], y[i]);
+        vezivanje (x[i], y[i]);
+        printf("%d \n", receptor.zauzeto);
     }
     file (x, y);
     return 0;
