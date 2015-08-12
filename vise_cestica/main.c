@@ -11,7 +11,19 @@
 #define broj_iteracija 50
 #define rate_constant 4.7
 #define broj_receptora 5
-int broj_cestica = 50;
+#define udaljenost_receptora 0.1
+#define okolina 0.2
+#define broj_enzima 5
+#define C 0.4
+
+int broj_cestica = 100;
+int broj_vezanih_cestica = 0;
+
+struct enzim_st
+{
+    double en_xcor;
+    double en_ycor;
+} enzim, enzimi [broj_enzima];
 
 struct receptor_st
 {
@@ -20,7 +32,7 @@ struct receptor_st
     double av;
     double pb;
     int zauzeto;
-} receptor;
+} receptor, receptori [broj_receptora];
 
 typedef struct xy_st
 {
@@ -55,7 +67,7 @@ koordinate reflektovanje (double x, double y)
             l = abs(- x - boundaries /2);
             x = - boundaries/2 + l;
         }
-      printf("%lf %lf reflektovanje \n", x, y);
+     // printf("%lf %lf reflektovanje \n", x, y);
       xy.x = x;
       xy.y = y;
     return xy;
@@ -106,31 +118,51 @@ void file (int x[], double y[])
 
 int vezivanje(double x, double y)
 {
-      int t;
+    int t = 0;
+    //receptor receptori [broj_receptora];
     double r = (double) rand()/RAND_MAX;
-    if ((y <= -boundaries/2 + 0.2) && (r <= 0.2))
+    for (t = 0; t <= broj_receptora - 1; t++)
     {
-           for (t = 0; t <= broj_receptora -1; t++)
-           {
-            if (x <= - boundaries / 2 + t * 0.1 + 0.005)
-            {
-            if ((receptor.zauzeto == 0) || (receptor.zauzeto == 1))
+       receptori[t].xcor = -boundaries/2 + t * udaljenost_receptora;
+    if (((y <= -boundaries/2 + okolina) && (r <= 0.0135)) && (x <= (receptori[t].xcor + okolina)) && (x>= receptori[t].xcor - okolina))
+    {
+            if (((receptori[t].zauzeto == 0) || (receptori[t].zauzeto == 1)) && (broj_vezanih_cestica < 2 * broj_receptora))
                     {
                         printf("ulazi u vezivanje \n");
-                        receptor.zauzeto = receptor.zauzeto + 1;
+                        receptori[t].zauzeto = receptori[t].zauzeto + 1;
                         broj_cestica = broj_cestica - 1;
+                        broj_vezanih_cestica = broj_vezanih_cestica + 1;
+                        return 1;
 
                     }
-                    if (receptor.zauzeto == 2)
+                   else if (receptori[t].zauzeto == 2)
                     {
-                        receptor.zauzeto = 0;
+                        receptori[t].zauzeto = 0;
+                        return 0;
                     }
-            }
 
-           }
+         }
     }
-      return receptor.zauzeto;
 
+}
+
+void razlaganje (double x, double y)
+{
+    int t = 0, i = 0;
+    double r = (double) rand()/RAND_MAX;
+    // koordinatni pocetak se nalazi u centru
+    for (t = 1; t <= broj_enzima; t++)
+    {
+        if ((x <= enzimi[t].en_xcor / 2) && (x >= -enzimi[t].en_xcor / 2) && (y <= enzimi[t].en_ycor / 2) && (y >= -enzimi[t].en_ycor / 2) && (r <= 0.2))
+        {
+              while ((receptori[i].zauzeto == 1) || (receptori[i].zauzeto == 2))
+              {
+                  receptori[i].zauzeto = receptori[i].zauzeto - 1;
+                  broj_vezanih_cestica = broj_vezanih_cestica - 1;
+                  i++;
+              }
+        }
+    }
 }
 
 int main()
@@ -143,35 +175,40 @@ int main()
     int i, j, vezan;
     int kolicina[broj_iteracija];
     double vreme[broj_iteracija];
+    enzim.en_xcor = 0.3;
+    enzim.en_ycor = 0.3;
     receptor.av = 6.23 ;
     receptor.pb = (rate_constant * (1/ 2 * receptor.av * receptor.xcor*receptor.ycor)*(sqrt(pi*time_step/D))) ;
     for (j = 0; j <= broj_iteracija - 1; j++)
     {
-    for (i = 1; i <= broj_cestica-1; i++)
+    for (i = 0; i <= broj_cestica-1; i++)
     {
         xkoordinate_cestica[i] = randn(xkoordinate_cestica[i-1], 2 * D * time_step);
         ykoordinate_cestica[i] = randn(ykoordinate_cestica[i-1], 2 * D * time_step);
-        printf("pre vezivanja %f %f \n", xkoordinate_cestica[i], ykoordinate_cestica[i]);
+        //printf("pre vezivanja %f %f \n", xkoordinate_cestica[i], ykoordinate_cestica[i]);
         vezan = vezivanje (xkoordinate_cestica[i], ykoordinate_cestica[i]);
 
-        if (!((vezan == 1) || (vezan == 2)))
+        if (vezan == 0)
         {
-           double l = abs(- ykoordinate_cestica[i]- boundaries /2);
+            double l = abs(- ykoordinate_cestica[i]- boundaries /2);
             ykoordinate_cestica[i] = -boundaries/2 + l;
         }
         koordinate temp = reflektovanje(xkoordinate_cestica[i], ykoordinate_cestica[i]);
         xkoordinate_cestica[i] = temp.x;
-        printf("posle vezivanja %f %f \n",temp.x, temp.y);
+        razlaganje (xkoordinate_cestica[i], ykoordinate_cestica[i]);
+       // printf("posle vezivanja %f %f \n",temp.x, temp.y);
     }
-    printf("%dbroj cestica \n", broj_cestica);
+    printf("%d broj vezanih cestica \n", broj_vezanih_cestica);
     kolicina[j] = broj_cestica;
     }
+
 
     int s;
     for (s = 0; s <= broj_iteracija - 1; s++)
     {
         vreme[s] = s*time_step;
     }
+
     file(kolicina,vreme);
     return 0;
 }
